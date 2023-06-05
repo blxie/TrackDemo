@@ -11,7 +11,7 @@ import base64
 
 from pathlib import Path
 
-prj_path = os.path.join(os.path.dirname(__file__), '..')
+prj_path = os.path.join(os.path.dirname(__file__), "..")
 if prj_path not in sys.path:
     sys.path.append(prj_path)
 
@@ -46,7 +46,7 @@ def tracking(
 
     _debug = debug
     if debug is None:
-        _debug = getattr(params, 'debug', 0)
+        _debug = getattr(params, "debug", 0)
     params.debug = _debug
 
     params.tracker_name = tracker.name
@@ -64,7 +64,7 @@ def tracking(
         exit(-1)
 
     def _build_init_info(box):
-        return {'init_bbox': box}
+        return {"init_bbox": box}
 
     if optional_box is not None:
         assert isinstance(optional_box, (list, tuple))
@@ -84,30 +84,30 @@ def tracking(
 
         # Draw box
         out = _tracker.track(frame)
-        bbox_data = [int(s) for s in out['target_bbox']]
+        bbox_data = [int(s) for s in out["target_bbox"]]
         output_boxes.append(bbox_data)
 
-        # Send the tracking results to the client in real time
-        msg = {'bbox': bbox_data, 'score': out['score']}  # data to encode
+        # 将跟踪结果实时发送给客户端
+        msg = {"bbox": bbox_data, "score": out["score"]}  # 要编码的数据
         msg_base64 = base64.b64encode(json.dumps(msg).encode())
         client_socket.sendall(msg_base64)
 
-        # Waiting for confirmation message from client
+        # 等待客户端的确认消息
         ack_message = client_socket.recv(1024)
-        if ack_message == b'ACK':
-            # Client has received the confirmation message and continues to process the next frame
+        if ack_message == b"ACK":
+            # 客户端已经接收到确认消息，继续下一帧处理
             # print(ack_message)
             continue
         else:
-            # Client did not send the correct acknowledgment message, disconnected
+            # 客户端未发送正确的确认消息，中断连接或其他处理
             break
 
     print(f"Tracking video finished: {video_path}")
     # tracked_bb = np.array(output_boxes).astype(int)
     # np.savetxt(track_res_file, tracked_bb, delimiter=',', fmt='%d')
 
-    # Send "TRACK_END" signal to client
-    msg = {'status': 'TRACK_END'}
+    # 发送 "TRACK_END" 信号给客户端
+    msg = {"status": "TRACK_END"}
     msg_base64 = base64.b64encode(json.dumps(msg).encode())
     client_socket.sendall(msg_base64)
 
@@ -129,35 +129,35 @@ def run_video(
         tracker_param: Name of parameter file.
         debug: Debug level.
     """
-    response_base64 = client_socket.recv(1024)  # Receive data
+    response_base64 = client_socket.recv(1024)  # 接收数据
     response_data = base64.b64decode(response_base64).decode()
     js_data = json.loads(response_data)
 
-    if "video_name" in js_data and js_data["video_name"]:  ## STEP1: Prepare video files
-        video_name = js_data['video_name']  # Video file name
+    if "video_name" in js_data and js_data["video_name"]:  ## STEP1: 准备好视频文件
+        video_name = js_data["video_name"]  # 视频文件的名称
         data_path = os.path.join("database/usrdata", Path(video_name).stem)
         if not os.path.exists(data_path):
             os.makedirs(data_path)
         video_path = os.path.join(data_path, video_name)
 
-        # Check if the file already exists
+        # 检查文件是否已经存在
         upload_video = False
         if not is_video_file_valid(video_path):
             upload_video = True
 
-        # Send a message to the client whether to upload the video
-        msg = {'upload': upload_video}
+        # 给客户端发送是否要上传视频的消息
+        msg = {"upload": upload_video}
         msg_base64 = base64.b64encode(json.dumps(msg).encode())
         client_socket.sendall(msg_base64)
 
         if upload_video:
-            file_size_bytes = client_socket.recv(4)  # Receive file size information
-            file_size = int.from_bytes(file_size_bytes, 'big')  # Parse file size
+            file_size_bytes = client_socket.recv(4)  # 接收文件大小信息
+            file_size = int.from_bytes(file_size_bytes, "big")  # 解析文件大小
             received_size = 0
 
             with open(video_path, "wb") as file:
                 while received_size < file_size:
-                    data = client_socket.recv(1024)  # Receive data from client
+                    data = client_socket.recv(1024)  # 接收数据
                     if not data:
                         break
                     file.write(data)
@@ -165,23 +165,23 @@ def run_video(
 
         print("视频已准备好！\n")
 
-    ## STEP2: ready init_bbox
-    # Video data has been prepared, and the init_bbox request is initiated to the client
+    ## STEP2: 准备好 init_bbox
+    # 视频数据已经准备完成，向客户端发起 init_bbox 的请求
     msg = {"draw_bbox": True}
     msg_base64 = base64.b64encode(json.dumps(msg).encode())
     client_socket.sendall(msg_base64)
 
-    response_base64 = client_socket.recv(1024)  # Receive data from client
+    response_base64 = client_socket.recv(1024)  # 接收数据
     response_data = base64.b64decode(response_base64).decode()
     js_data = json.loads(response_data)
-    selected_roi = js_data['roi']  # Initial bounding box: first frame
-    
-    # STEP3: Execute trace
-    tracker_params['videofile'] = video_path
-    tracker_params['optional_box'] = selected_roi
+    selected_roi = js_data["roi"]  # 初始边界框，第一帧
+
+    # STEP3: 执行跟踪并生成 bbox.txt 文件
+    tracker_params["videofile"] = video_path
+    tracker_params["optional_box"] = selected_roi
 
     tracker = Tracker(tracker_name, tracker_param, "video", tracker_params=tracker_params)
-    track_res_file = os.path.join(data_path, 'tracked_{}_res.txt'.format(Path(video_name).stem))
+    track_res_file = os.path.join(data_path, "tracked_{}_res.txt".format(Path(video_name).stem))
 
     tracking(
         tracker=tracker,
@@ -194,45 +194,68 @@ def run_video(
 
 
 def main():
-    parser = argparse.ArgumentParser(description='Run the tracker on your webcam.')
+    parser = argparse.ArgumentParser(description="Run the tracker on your webcam.")
     # parser.add_argument('tracker_name', type=str, help='Name of tracking method.')
     # parser.add_argument('tracker_param', type=str, help='Name of parameter file.')
     # parser.add_argument('videofile', type=str, help='path to a video file.')
-    parser.add_argument('--optional_box', type=float, default=None, nargs="+", help='optional_box with format x y w h.')
-    parser.add_argument('--debug', type=int, default=0, help='Debug level.')
-    parser.add_argument('--save_results', dest='save_results', action='store_true', help='Save bounding boxes')
+    parser.add_argument(
+        "--optional_box",
+        type=float,
+        default=None,
+        nargs="+",
+        help="optional_box with format x y w h.",
+    )
+    parser.add_argument("--debug", type=int, default=0, help="Debug level.")
+    parser.add_argument(
+        "--save_results",
+        dest="save_results",
+        action="store_true",
+        help="Save bounding boxes",
+    )
     parser.set_defaults(save_results=True)
 
-    parser.add_argument('--params__model', type=str, default=None, help="Tracking model path.")
-    parser.add_argument('--params__update_interval', type=int, default=None, help="Update interval of online tracking.")
-    parser.add_argument('--params__online_sizes', type=int, default=None)
-    parser.add_argument('--params__search_area_scale', type=float, default=None)
-    parser.add_argument('--params__max_score_decay', type=float, default=1.0)
-    parser.add_argument('--params__vis_attn',
-                        type=int,
-                        choices=[0, 1],
-                        default=0,
-                        help="Whether visualize the attention maps.")
+    parser.add_argument("--params__model", type=str, default=None, help="Tracking model path.")
+    parser.add_argument(
+        "--params__update_interval",
+        type=int,
+        default=None,
+        help="Update interval of online tracking.",
+    )
+    parser.add_argument("--params__online_sizes", type=int, default=None)
+    parser.add_argument("--params__search_area_scale", type=float, default=None)
+    parser.add_argument("--params__max_score_decay", type=float, default=1.0)
+    parser.add_argument(
+        "--params__vis_attn",
+        type=int,
+        choices=[0, 1],
+        default=0,
+        help="Whether visualize the attention maps.",
+    )
 
     args = parser.parse_args()
 
-    args.tracker_name = 'mixformer_cvt_online'
-    args.tracker_param = 'baseline'
-    args.params__model = 'mixformer_online_22k.pth.tar'
-    args.videofile = ''
+    args.tracker_name = "tracking_engine_1_online"
+    args.tracker_param = "baseline"
+    args.params__model = "tracking_engine_1_online_22k.pth.tar"
+    args.videofile = ""
     args.debug = 0
     args.params__search_area_scale = 4.5
     args.params__update_interval = 10
     args.params__online_sizes = 5
 
     tracker_params = {}
-    for param in list(filter(lambda s: s.split('__')[0] == 'params' and getattr(args, s) != None, args.__dir__())):
-        tracker_params[param.split('__')[1]] = getattr(args, param)
+    for param in list(
+        filter(
+            lambda s: s.split("__")[0] == "params" and getattr(args, s) != None,
+            args.__dir__(),
+        )
+    ):
+        tracker_params[param.split("__")[1]] = getattr(args, param)
 
     # print(tracker_params)
 
-    host = "0.0.0.0"  # listen on all network interfaces
-    port = 12345  # Server port
+    host = "0.0.0.0"  # 监听所有网络接口
+    port = 12345  # 服务器端口
     server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     server_socket.bind((host, port))
     server_socket.listen(5)
@@ -240,19 +263,21 @@ def main():
     print(f"Server listening on {host}:{port}")
 
     while True:
-        client_socket, addr = server_socket.accept()  # Receive client connection
+        client_socket, addr = server_socket.accept()  # 接收客户端连接
         print(f"Client connected from {addr[0]}:{addr[1]}")
 
-        # Create a new thread to handle client connections
-        client_thread = threading.Thread(target=run_video,
-                                         args=(
-                                             client_socket,
-                                             args.tracker_name,
-                                             args.tracker_param,
-                                             tracker_params,
-                                         ))
+        # 创建一个新线程来处理客户端连接
+        client_thread = threading.Thread(
+            target=run_video,
+            args=(
+                client_socket,
+                args.tracker_name,
+                args.tracker_param,
+                tracker_params,
+            ),
+        )
         client_thread.start()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

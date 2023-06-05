@@ -8,4 +8,8 @@ local.py
 data
 img
 debug
-models
+database/
+*.tar
+.vscode
+*.png
+.vscode
