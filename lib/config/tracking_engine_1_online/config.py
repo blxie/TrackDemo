@@ -2,7 +2,7 @@ from easydict import EasyDict as edict
 import yaml
 
 """
-Add default config for MixFormerOnline.
+Add default config for TE_1_Online.
 """
 cfg = edict()
 
@@ -11,34 +11,34 @@ cfg.MODEL = edict()
 cfg.MODEL.HEAD_TYPE = "CORNER"
 cfg.MODEL.HIDDEN_DIM = 384
 cfg.MODEL.NUM_OBJECT_QUERIES = 1
-cfg.MODEL.POSITION_EMBEDDING = 'sine'  # sine or learned
+cfg.MODEL.POSITION_EMBEDDING = "sine"  # sine or learned
 cfg.MODEL.PREDICT_MASK = False
-cfg.MODEL.VIT_TYPE = 'cvt_21'
+cfg.MODEL.VIT_TYPE = "cvt_21"
 # MODEL.BACKBONE
 cfg.MODEL.BACKBONE = edict()
 cfg.MODEL.BACKBONE.PRETRAINED = True
-cfg.MODEL.BACKBONE.PRETRAINED_PATH = ''
-cfg.MODEL.BACKBONE.INIT = 'trunc_norm'
+cfg.MODEL.BACKBONE.PRETRAINED_PATH = ""
+cfg.MODEL.BACKBONE.INIT = "trunc_norm"
 cfg.MODEL.BACKBONE.NUM_STAGES = 3
-cfg.MODEL.BACKBONE.PATCH_SIZE = [ 7, 3, 3 ]
-cfg.MODEL.BACKBONE.PATCH_STRIDE = [ 4, 2, 2 ]
-cfg.MODEL.BACKBONE.PATCH_PADDING = [ 2, 1, 1 ]
-cfg.MODEL.BACKBONE.DIM_EMBED = [ 64, 192, 384 ]
-cfg.MODEL.BACKBONE.NUM_HEADS = [ 1, 3, 6 ]
-cfg.MODEL.BACKBONE.DEPTH = [ 1, 4, 16 ]
-cfg.MODEL.BACKBONE.MLP_RATIO = [ 4.0, 4.0, 4.0 ]
-cfg.MODEL.BACKBONE.ATTN_DROP_RATE = [ 0.0, 0.0, 0.0 ]
-cfg.MODEL.BACKBONE.DROP_RATE = [ 0.0, 0.0, 0.0 ]
-cfg.MODEL.BACKBONE.DROP_PATH_RATE = [ 0.0, 0.0, 0.1 ]
-cfg.MODEL.BACKBONE.QKV_BIAS = [ True, True, True ]
-cfg.MODEL.BACKBONE.CLS_TOKEN = [ False, False, True ]
-cfg.MODEL.BACKBONE.POS_EMBED = [ False, False, False ]
-cfg.MODEL.BACKBONE.QKV_PROJ_METHOD = [ 'dw_bn', 'dw_bn', 'dw_bn' ]
-cfg.MODEL.BACKBONE.KERNEL_QKV = [ 3, 3, 3 ]
-cfg.MODEL.BACKBONE.PADDING_KV = [ 1, 1, 1 ]
-cfg.MODEL.BACKBONE.STRIDE_KV = [ 2, 2, 2 ]
-cfg.MODEL.BACKBONE.PADDING_Q = [ 1, 1, 1 ]
-cfg.MODEL.BACKBONE.STRIDE_Q = [ 1, 1, 1 ]
+cfg.MODEL.BACKBONE.PATCH_SIZE = [7, 3, 3]
+cfg.MODEL.BACKBONE.PATCH_STRIDE = [4, 2, 2]
+cfg.MODEL.BACKBONE.PATCH_PADDING = [2, 1, 1]
+cfg.MODEL.BACKBONE.DIM_EMBED = [64, 192, 384]
+cfg.MODEL.BACKBONE.NUM_HEADS = [1, 3, 6]
+cfg.MODEL.BACKBONE.DEPTH = [1, 4, 16]
+cfg.MODEL.BACKBONE.MLP_RATIO = [4.0, 4.0, 4.0]
+cfg.MODEL.BACKBONE.ATTN_DROP_RATE = [0.0, 0.0, 0.0]
+cfg.MODEL.BACKBONE.DROP_RATE = [0.0, 0.0, 0.0]
+cfg.MODEL.BACKBONE.DROP_PATH_RATE = [0.0, 0.0, 0.1]
+cfg.MODEL.BACKBONE.QKV_BIAS = [True, True, True]
+cfg.MODEL.BACKBONE.CLS_TOKEN = [False, False, True]
+cfg.MODEL.BACKBONE.POS_EMBED = [False, False, False]
+cfg.MODEL.BACKBONE.QKV_PROJ_METHOD = ["dw_bn", "dw_bn", "dw_bn"]
+cfg.MODEL.BACKBONE.KERNEL_QKV = [3, 3, 3]
+cfg.MODEL.BACKBONE.PADDING_KV = [1, 1, 1]
+cfg.MODEL.BACKBONE.STRIDE_KV = [2, 2, 2]
+cfg.MODEL.BACKBONE.PADDING_Q = [1, 1, 1]
+cfg.MODEL.BACKBONE.STRIDE_Q = [1, 1, 1]
 cfg.MODEL.BACKBONE.FREEZE_BN = True
 cfg.MODEL.PRETRAINED_STAGE1 = True
 cfg.MODEL.NLAYER_HEAD = 3
@@ -70,13 +70,13 @@ cfg.TRAIN.SCHEDULER.DECAY_RATE = 0.1
 
 # DATA
 cfg.DATA = edict()
-cfg.DATA.SAMPLER_MODE = 'trident_pro'
+cfg.DATA.SAMPLER_MODE = "trident_pro"
 cfg.DATA.MEAN = [0.485, 0.456, 0.406]
 cfg.DATA.STD = [0.229, 0.224, 0.225]
 cfg.DATA.MAX_SAMPLE_INTERVAL = 200
 # DATA.TRAIN
 cfg.DATA.TRAIN = edict()
-cfg.DATA.TRAIN.DATASETS_NAME = ["GOT10K_vottrain"]#["LASOT", "GOT10K_vottrain"]
+cfg.DATA.TRAIN.DATASETS_NAME = ["GOT10K_vottrain"]  # ["LASOT", "GOT10K_vottrain"]
 cfg.DATA.TRAIN.DATASETS_RATIO = [1]
 cfg.DATA.TRAIN.SAMPLE_PER_EPOCH = 60000
 # DATA.VAL
@@ -114,7 +114,7 @@ cfg.TEST.UPDATE_INTERVALS.VOT20LT = [200]
 cfg.TEST.UPDATE_INTERVALS.OTB = [200]
 cfg.TEST.UPDATE_INTERVALS.UAV = [200]
 
-cfg.TEST.ONLINE_SIZES= edict()
+cfg.TEST.ONLINE_SIZES = edict()
 cfg.TEST.ONLINE_SIZES.LASOT = [3]
 cfg.TEST.ONLINE_SIZES.GOT10K_TEST = [3]
 cfg.TEST.ONLINE_SIZES.TRACKINGNET = [3]
@@ -139,7 +139,7 @@ def _edict2dict(dest_dict, src_edict):
 def gen_config(config_file):
     cfg_dict = {}
     _edict2dict(cfg_dict, cfg)
-    with open(config_file, 'w') as f:
+    with open(config_file, "w") as f:
         yaml.dump(cfg_dict, f, default_flow_style=False)
 
 
@@ -162,5 +162,3 @@ def update_config_from_file(filename):
     with open(filename) as f:
         exp_config = edict(yaml.safe_load(f))
         _update_config(cfg, exp_config)
-
-
