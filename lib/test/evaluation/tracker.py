@@ -1,6 +1,7 @@
 import importlib
 import os
 from collections import OrderedDict
+# from multi_object_wrapper import MultiObjectWrapper
 from lib.test.evaluation.environment import env_settings
 import time
 import cv2 as cv
@@ -180,9 +181,8 @@ class Tracker:
 
         if multiobj_mode == 'default':
             tracker = self.create_tracker(params)
-
-        elif multiobj_mode == 'parallel':
-            tracker = MultiObjectWrapper(self.tracker_class, params, self.visdom, fast_load=True)
+        # elif multiobj_mode == 'parallel':
+        #     tracker = MultiObjectWrapper(self.tracker_class, params, self.visdom, fast_load=True)
         else:
             raise ValueError('Unknown multi object mode {}'.format(multiobj_mode))
 
