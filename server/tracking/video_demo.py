@@ -61,7 +61,8 @@ def tracking(
 
     if success is not True:
         print("Read frame from {} failed.".format(video_path))
-        exit(-1)
+        return
+        # exit(-1)
 
     def _build_init_info(box):
         return {"init_bbox": box}
@@ -87,26 +88,26 @@ def tracking(
         bbox_data = [int(s) for s in out["target_bbox"]]
         output_boxes.append(bbox_data)
 
-        # 将跟踪结果实时发送给客户端
-        msg = {"bbox": bbox_data, "score": out["score"]}  # 要编码的数据
+        # Send tracking results to clients in real time
+        msg = {"bbox": bbox_data, "score": out["score"]}  # the data to encode
         msg_base64 = base64.b64encode(json.dumps(msg).encode())
         client_socket.sendall(msg_base64)
 
-        # 等待客户端的确认消息
+        # Waiting for confirmation message from client
         ack_message = client_socket.recv(1024)
         if ack_message == b"ACK":
-            # 客户端已经接收到确认消息，继续下一帧处理
+            # Client has received the confirmation message and continues to process the next frame
             # print(ack_message)
             continue
         else:
-            # 客户端未发送正确的确认消息，中断连接或其他处理
+            # Client did not send the correct acknowledgment message, disconnected or otherwise processed
             break
 
     print(f"Tracking video finished: {video_path}")
     # tracked_bb = np.array(output_boxes).astype(int)
     # np.savetxt(track_res_file, tracked_bb, delimiter=',', fmt='%d')
 
-    # 发送 "TRACK_END" 信号给客户端
+    # Send "TRACK_END" signal to client
     msg = {"status": "TRACK_END"}
     msg_base64 = base64.b64encode(json.dumps(msg).encode())
     client_socket.sendall(msg_base64)
@@ -129,54 +130,54 @@ def run_video(
         tracker_param: Name of parameter file.
         debug: Debug level.
     """
-    response_base64 = client_socket.recv(1024)  # 接收数据
+    response_base64 = client_socket.recv(1024)  # Receive client data
     response_data = base64.b64decode(response_base64).decode()
     js_data = json.loads(response_data)
 
-    if "video_name" in js_data and js_data["video_name"]:  ## STEP1: 准备好视频文件
-        video_name = js_data["video_name"]  # 视频文件的名称
+    if "video_name" in js_data and js_data["video_name"]:  ## STEP1: Prepare video files
+        video_name = js_data["video_name"]  # video file name
         data_path = os.path.join("database/usrdata", Path(video_name).stem)
         if not os.path.exists(data_path):
             os.makedirs(data_path)
         video_path = os.path.join(data_path, video_name)
 
-        # 检查文件是否已经存在
+        # Check if the file already exists
         upload_video = False
         if not is_video_file_valid(video_path):
             upload_video = True
 
-        # 给客户端发送是否要上传视频的消息
+        # Send a message to the client whether to upload the video
         msg = {"upload": upload_video}
         msg_base64 = base64.b64encode(json.dumps(msg).encode())
         client_socket.sendall(msg_base64)
 
         if upload_video:
-            file_size_bytes = client_socket.recv(4)  # 接收文件大小信息
-            file_size = int.from_bytes(file_size_bytes, "big")  # 解析文件大小
+            file_size_bytes = client_socket.recv(4)  # Receive file size information
+            file_size = int.from_bytes(file_size_bytes, "big")  # parse file size
             received_size = 0
 
             with open(video_path, "wb") as file:
                 while received_size < file_size:
-                    data = client_socket.recv(1024)  # 接收数据
+                    data = client_socket.recv(1024)  # Receive client data
                     if not data:
                         break
                     file.write(data)
                     received_size += len(data)
 
-        print("视频已准备好！\n")
+        print("Video is ready!\n")
 
-    ## STEP2: 准备好 init_bbox
-    # 视频数据已经准备完成，向客户端发起 init_bbox 的请求
+    ## STEP2: prepare init_bbox
+    # Video data has been prepared, and the init_bbox request is initiated to the client
     msg = {"draw_bbox": True}
     msg_base64 = base64.b64encode(json.dumps(msg).encode())
     client_socket.sendall(msg_base64)
 
-    response_base64 = client_socket.recv(1024)  # 接收数据
+    response_base64 = client_socket.recv(1024)  # Receive client data
     response_data = base64.b64decode(response_base64).decode()
     js_data = json.loads(response_data)
-    selected_roi = js_data["roi"]  # 初始边界框，第一帧
+    selected_roi = js_data["roi"]  # Initial bounding box, first frame
 
-    # STEP3: 执行跟踪并生成 bbox.txt 文件
+    # STEP3: Execute tracking
     tracker_params["videofile"] = video_path
     tracker_params["optional_box"] = selected_roi
 
@@ -254,8 +255,8 @@ def main():
 
     # print(tracker_params)
 
-    host = "0.0.0.0"  # 监听所有网络接口
-    port = 12345  # 服务器端口
+    host = "0.0.0.0"  # listen on all network interfaces
+    port = 12345  # server port
     server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     server_socket.bind((host, port))
     server_socket.listen(5)
@@ -263,10 +264,10 @@ def main():
     print(f"Server listening on {host}:{port}")
 
     while True:
-        client_socket, addr = server_socket.accept()  # 接收客户端连接
+        client_socket, addr = server_socket.accept()  # Receive client connection
         print(f"Client connected from {addr[0]}:{addr[1]}")
 
-        # 创建一个新线程来处理客户端连接
+        # Create a new thread to handle client connections
         client_thread = threading.Thread(
             target=run_video,
             args=(
